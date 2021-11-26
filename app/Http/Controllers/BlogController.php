@@ -16,8 +16,11 @@ class BlogController extends Controller
         return view('welcome',compact('articles'));
     }
 
-    public function detail ($id){
-        $article = Article::find($id);
+    public function detail ($slug){
+        $article = Article::where("slug",$slug)->first();
+        if (empty($article)){
+            abort('404');
+        }
         return view('blog.detail',compact('article'));
     }
 
@@ -45,3 +48,4 @@ class BlogController extends Controller
         return view('welcome',compact('articles'));
     }
 }
+

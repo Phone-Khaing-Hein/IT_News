@@ -6,9 +6,18 @@ use App\Article;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ArticleController extends Controller
 {
+    public function apiIndex(){
+        $articles = Article::when(isset(request()->search),function($query){
+            $search = request()->search;
+            return $query->where("title","like","%$search%")->orwhere("description","like","%$search%");
+        })->with(["getUser","getCategory"])->orderBy("id","desc")->paginate(5);
+
+        return $articles;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -16,6 +25,11 @@ class ArticleController extends Controller
      */
     public function index()
     {
+//        $all = Article::all();
+//        foreach ($all as $a){
+//            $a->excerpt = Str::words($a->description,50);
+//            $a->update();
+//        }
         $articles = Article::when(isset(request()->search),function($query){
             $search = request()->search;
             return $query->where("title","like","%$search%")->orwhere("description","like","%$search%");
@@ -49,8 +63,10 @@ class ArticleController extends Controller
 
         $article = new Article();
         $article->title = $request->title;
+        $article->slug = Str::slug($request->title)."-".uniqid();
         $article->category_id = $request->category;
         $article->description = $request->description;
+        $article->excerpt = Str::words($request->description,50);
         $article->user_id = Auth::id();
         $article->save();
 
@@ -94,9 +110,13 @@ class ArticleController extends Controller
             "description" => "required|min:5"
         ]);
 
+        if($article->title != $request->title){
+            $article->slug = Str::slug($request->title)."-".uniqid();
+        }
         $article->title = $request->title;
         $article->category_id = $request->category;
         $article->description = $request->description;
+        $article->excerpt = Str::words($request->description,50);
         $article->update();
 
         return redirect()->route('article.index')->with("message",$request->title." updated.");
